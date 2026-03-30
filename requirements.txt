@@ -6,3 +6,4 @@ xgboost
 scipy
 requests
 numpy
+google-generativeai
