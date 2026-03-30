@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from groq import Groq
+import os
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -622,26 +625,20 @@ if "llm_memory" not in st.session_state:
 # ---------------------------
 def call_ollama_stream(prompt: str):
     try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "llama3",
-                "prompt": prompt,
-                "stream": True,
-                "temperature": 0
-            },
-            stream=True,
-            timeout=120
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
         )
 
-        for line in response.iter_lines():
-            if line:
-                chunk = json.loads(line.decode("utf-8"))
-                if "response" in chunk:
-                    yield chunk["response"]
+        text = response.choices[0].message.content
+
+        for char in text:
+            yield char
 
     except Exception as e:
-        yield f"\n Error: {e}"
+        yield f"Error: {e}"
 # ---------------------------
 # CALL OLLAMA (LLAMA 3)
 # ---------------------------
@@ -649,17 +646,13 @@ import requests
 
 def call_ollama(prompt: str) -> str:
     try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "llama3",
-                "prompt": prompt,
-                "stream": False,
-                "temperature": 0,
-            },
-            timeout=60
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
         )
-        return response.json().get("response", "").strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return ""
 # ============================
@@ -1443,12 +1436,7 @@ User request: {user_query}
 Columns: {list(df.columns)}
 """
 
-    result = subprocess.run(
-        ["ollama", "run", "llama3"],
-        input=plan_prompt,
-        capture_output=True,
-        text=True
-    )
+
 
 # ======================================================
 #  DATASET HEALTH
@@ -1479,7 +1467,7 @@ Explain this dataset health in simple words:
         )
 
         st.markdown("###  LLM Explanation")
-        st.write(explanation.stdout)
+        st.write(explanation)
 
 
 # ======================================================
