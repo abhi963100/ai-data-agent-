@@ -3,7 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from groq import Groq
 import os
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))if not api_key:
+    st.error("GROQ API KEY is missing. Please set it in Streamlit Secrets.")
+    st.stop()
+
+client = Groq(api_key=api_key)
+
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
