@@ -8,7 +8,7 @@ api_key = st.secrets["GROQ_API_KEY"]
 client = Groq(api_key=api_key)
 try:
     response = client.chat.completions.create(
-        model="llama3-70b-8192",  # ✅ updated model
+        model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": "Hello"}]
     )
     st.write(response.choices[0].message.content)
