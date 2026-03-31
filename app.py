@@ -10,6 +10,14 @@ if not api_key:
     st.stop()
 
 client = Groq(api_key=api_key)
+try:
+    response = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[{"role": "user", "content": "Hello"}]
+    )
+    st.write(response.choices[0].message.content)
+except Exception as e:
+    st.error(f"Error: {e}")
 
 
 from sklearn.model_selection import train_test_split
