@@ -2,15 +2,21 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from groq import Groq
+import os
+
+st.write("Secrets:", st.secrets)  # remove later
 
 api_key = st.secrets["GROQ_API_KEY"]
 
-if not api_key:
-    st.error("GROQ API KEY is missing.")
-    st.stop()
-
 client = Groq(api_key=api_key)
-st.write("Key exists:", "GROQ_API_KEY" in st.secrets)
+try:
+    response = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[{"role": "user", "content": "Hello"}]
+    )
+    st.write(response.choices[0].message.content)
+except Exception as e:
+    st.error(f"Error: {e}")
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
