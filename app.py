@@ -3,18 +3,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from groq import Groq
 import os
-
-st.write("Secrets:", st.secrets)  # remove later
-
 api_key = st.secrets["GROQ_API_KEY"]
 
 client = Groq(api_key=api_key)
 try:
     response = client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="llama3-70b-8192",  # ✅ updated model
         messages=[{"role": "user", "content": "Hello"}]
     )
     st.write(response.choices[0].message.content)
+
 except Exception as e:
     st.error(f"Error: {e}")
 
