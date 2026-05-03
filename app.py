@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from groq import Groq
-import os
+
 api_key = st.secrets["GROQ_API_KEY"]
 
 client = Groq(api_key=api_key)
@@ -637,7 +637,7 @@ if "llm_memory" not in st.session_state:
 def call_ollama_stream(prompt: str):
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -658,7 +658,7 @@ import requests
 def call_ollama(prompt: str) -> str:
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=[
                 {"role": "user", "content": prompt}
             ]
