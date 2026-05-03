@@ -493,13 +493,41 @@ else:
 # ======================================================
 # ML HELPERS
 # ======================================================
-def detect_ml_task(y):
-    return "classification" if y.nunique() <= 10 else "regression"
+# ================================
+# ✅ ML HELPER (FINAL VERSION)
+# ================================
 
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score, accuracy_score
+
+# ----------------
+# Task Detection
+# ----------------
+def detect_ml_task(y):
+    if y.dtype == "object":
+        return "classification"
+    if y.nunique() <= 10 and y.dtype != "float":
+        return "classification"
+    return "regression"
+
+# ----------------
+# Model Selector
+# ----------------
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
+from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
+from sklearn.svm import SVR, SVC
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from xgboost import XGBRegressor
 
 def get_ml_model(model_name, task):
     if task == "regression":
-        return {
+        models = {
             "linear": LinearRegression(),
             "rf": RandomForestRegressor(n_estimators=200),
             "xgb": XGBRegressor(n_estimators=200),
@@ -507,43 +535,74 @@ def get_ml_model(model_name, task):
             "knn": KNeighborsRegressor(),
             "gb": GradientBoostingRegressor(),
             "extra": ExtraTreesRegressor(n_estimators=300)
-        }.get(model_name, LinearRegression())
+        }
+        return models.get(model_name, LinearRegression())
+
     else:
-        return {
+        models = {
             "logistic": LogisticRegression(max_iter=2000),
             "rf": RandomForestClassifier(n_estimators=200),
             "svm": SVC(),
             "knn": KNeighborsClassifier(),
             "gb": GradientBoostingClassifier(),
             "extra": ExtraTreesClassifier(n_estimators=300)
-        }.get(model_name, LogisticRegression())
+        }
+        return models.get(model_name, LogisticRegression())
 
-
+# ----------------
+# Training Function
+# ----------------
 def train_ml_model(df, target, model_name="rf"):
     X = df.drop(columns=[target])
     y = df[target]
 
-    for col in X.select_dtypes(include="object"):
-        X[col] = LabelEncoder().fit_transform(X[col].astype(str))
-
+    # 🔹 Detect task
     task = detect_ml_task(y)
+
+    # 🔹 Column split
+    num_cols = X.select_dtypes(include=np.number).columns
+    cat_cols = X.select_dtypes(exclude=np.number).columns
+
+    # 🔹 Preprocessing
+    preprocessor = ColumnTransformer([
+        ("num", StandardScaler(), num_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols)
+    ])
+
+    # 🔹 Model
+    model = get_ml_model(model_name, task)
+
+    # 🔹 Pipeline
+    pipeline = Pipeline([
+        ("prep", preprocessor),
+        ("model", model)
+    ])
+
+    # 🔹 Train-test split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    model = get_ml_model(model_name, task)
-    model.fit(X_train, y_train)
+    # 🔹 Train
+    pipeline.fit(X_train, y_train)
 
-    score = (
-        r2_score(y_test, model.predict(X_test))
-        if task == "regression"
-        else accuracy_score(y_test, model.predict(X_test))
-    )
+    # 🔹 Predict
+    preds = pipeline.predict(X_test)
 
-    return task, score
+    # 🔹 Score
+    if task == "regression":
+        score = r2_score(y_test, preds)
+    else:
+        score = accuracy_score(y_test, preds)
 
+    # 🔹 Cross-validation
+    cv_scores = cross_val_score(pipeline, X, y, cv=5)
 
-
+    return {
+        "task": task,
+        "test_score": round(score, 4),
+        "cv_score": round(cv_scores.mean(), 4)
+    }
 # ======================================================
 # DESCRIBE TOOL
 # ======================================================
